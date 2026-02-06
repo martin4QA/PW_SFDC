@@ -1,0 +1,13 @@
+# Test framework
+pytest
+pytest-playwright
+
+# Browser automation
+playwright
+
+# HTTP + auth
+requests
+python-dotenv
+
+# JWT authentication with RSA (Salesforce)
+PyJWT[crypto]

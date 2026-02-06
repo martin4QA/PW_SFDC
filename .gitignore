@@ -1,0 +1,49 @@
+# --------------------
+# Python
+# --------------------
+__pycache__/
+*.py[cod]
+
+# --------------------
+# Virtual environments
+# --------------------
+venv/
+.venv/
+env/
+
+# --------------------
+# Pytest
+# --------------------
+.pytest_cache/
+
+# --------------------
+# Coverage (if added later)
+# --------------------
+.coverage
+.coverage.*
+htmlcov/
+coverage.xml
+
+# --------------------
+# Playwright artifacts
+# --------------------
+playwright-report/
+test-results/
+screenshots/
+videos/
+traces/
+downloads/
+
+# --------------------
+# Environment variables / secrets
+# --------------------
+.env
+.env.*
+
+# --------------------
+# IDE / OS
+# --------------------
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
