@@ -1,30 +1,97 @@
 import os
+import re
 from dotenv import load_dotenv
 import pytest
+from pathlib import Path
+from typing import Generator, Optional
 from urllib.parse import quote
 from playwright.sync_api import Page
 
 from auth import get_salesforce_auth
 
+ARTIFACTS_DIR = Path("artifacts")
 
 # Load environment variables from .env for local runs.
 # In CI, these are expected to be provided by the environment.
 load_dotenv()
 
+
+
+# -------------------------------------------------------------------------------------------------
+# Funcitions
+# -------------------------------------------------------------------------------------------------
+
+
+def _safe_name(name: str) -> str:
+    # Make a filename-safe test id
+
+    return re.sub(r"[^a-zA-Z0-9_.-]+", "_", f"{name}")
+
+
+def _env_flag(name: str, default: str = "0") -> bool:
+    return os.getenv(name, default).strip().lower() in {"1", "true", "yes", "y", "on"}
+
+
+def _delete_dir_if_empty(path):
+    try:
+        if path.exists() and path.is_dir() and not any(path.iterdir()):
+            path.rmdir()
+    except OSError:
+        # Directory not empty or in use – ignore
+        pass
+
+
 # -------------------------------------------------------------------------------------------------
 # Pytest hook
 # -------------------------------------------------------------------------------------------------
 
+
 @pytest.hookimpl(hookwrapper=True)
 def pytest_runtest_makereport(item, call):
-    """
-    Attach the test result to the test item so fixtures can
-    react to failures (e.g. pause the browser for debugging).
-    """
     outcome = yield
     rep = outcome.get_result()
-    if rep.when == "call":
-        item.rep_call = rep
+
+    setattr(item, f"rep_{rep.when}", rep)
+
+    if rep.when != "call" or not rep.failed:
+        return
+
+    print("\n==== PYTEST FAILURE (longrepr) ====\n")
+    print(rep.longrepr)
+
+    crash = getattr(rep.longrepr, "reprcrash", None)
+    if crash and getattr(crash, "message", None):
+        print("\n==== PYTEST FAILURE (message) ====\n")
+        print(crash.message)
+
+    page = getattr(item, "pw_page", None)
+    if not page:
+        print("[warn] Test failed but no pw_page attached (did the test use sfdc_page?)")
+        return
+    
+    
+
+
+    test_id = _safe_name(item.nodeid)
+    test_dir = ARTIFACTS_DIR / test_id
+    test_dir.mkdir(parents=True, exist_ok=True)
+
+    try:
+        screenshot_path = test_dir / "screenshot.png"
+        page.screenshot(path=str(screenshot_path), full_page=True)
+        print(f"[artifact] Screenshot saved: {screenshot_path}")
+    except Exception as e:
+        print(f"[warn] Could not take screenshot: {e}")
+
+    try:
+        html_path = test_dir / "page.html"
+        html_path.write_text(page.content(), encoding="utf-8")
+        print(f"[artifact] HTML saved: {html_path}")
+    except Exception as e:
+        print(f"[warn] Could not save page HTML: {e}")
+
+    if _env_flag("PAUSE_ON_FAIL"):
+        page.pause()
 
 
 # -------------------------------------------------------------------------------------------------
@@ -60,6 +127,7 @@ def sfdc_login_with_frontdoor(page: Page, auth: dict, target: str) -> None:
 # -------------------------------------------------------------------------------------------------
 # Fixtures
 # -------------------------------------------------------------------------------------------------
+
 
 @pytest.fixture(scope="session")
 def sfdc_auth():
@@ -112,23 +180,16 @@ def sfdc_context(browser, sfdc_storage_state):
 
 
 @pytest.fixture()
-def sfdc_page(sfdc_context, request):
-    """
-    Provide a new page per test and optionally pause execution
-    on failure to support local debugging.
-    """
+def sfdc_page(sfdc_context, request) -> Page:
     page = sfdc_context.new_page()
+
+    # Attach for hook-time capture (before teardown closes anything)
+    request.node.pw_page = page
+    request.node.pw_context = sfdc_context
+
     yield page
 
-    # If the test failed, optionally pause the browser for inspection.
-    # Enabled only when PWDEBUG=1 is set locally.
-    rep = getattr(request.node, "rep_call", None)
-    failed = bool(rep and rep.failed)
-    if failed and os.getenv("PWDEBUG") == "1":
-        print("Test failed – pausing Playwright")
-        page.pause()
-
-    # Explicit close for clarity (context.close will also close pages)
+    # Keep teardown simple; hook handles pause/artifacts
     page.close()
 
 
@@ -147,3 +208,25 @@ def sfdc_base_url():
 
     assert url, f"{key} not set"
     return url.rstrip("/")
+
+
+@pytest.fixture(autouse=True)
+def trace_per_test(sfdc_context, request):
+    test_id = _safe_name(request.node.nodeid)
+    test_dir = ARTIFACTS_DIR / test_id
+    test_dir.mkdir(parents=True, exist_ok=True)
+
+    sfdc_context.tracing.start(screenshots=True, snapshots=True, sources=True)
+    yield
+
+    rep = getattr(request.node, "rep_call", None)
+    failed = bool(rep and rep.failed)
+
+    if failed:
+        trace_path = test_dir / "trace.zip"
+        sfdc_context.tracing.stop(path=str(trace_path))
+        print(f"[artifact] Trace saved: {trace_path}")
+    else:
+        sfdc_context.tracing.stop()
+
+    _delete_dir_if_empty(test_dir)

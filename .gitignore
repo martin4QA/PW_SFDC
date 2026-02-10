@@ -34,6 +34,12 @@ videos/
 traces/
 downloads/
 
+
+# --------------------
+# Test result artifacts
+# --------------------
+artifacts/
+
 # --------------------
 # Environment variables / secrets
 # --------------------

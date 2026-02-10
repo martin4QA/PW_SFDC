@@ -56,3 +56,4 @@ def test_SFDC_add_full_lead(sfdc_leads_home, test_data_generator):
     expect(leads_page.page.get_by_role("link", name=str(test_data_generator["phone"]))).to_be_visible()
     expect(leads_page.page.locator("lightning-formatted-text").filter(has_text=test_data_generator["company"])).to_be_visible()
     expect(leads_page.page.locator("lightning-formatted-text").filter(has_text=test_data_generator["title"])).to_be_visible()
+   # expect(leads_page.page.locator("lightning-formatted-text").filter(has_text=test_data_generator["salutation"] + " " + test_data_generator["first_name"] + " " + test_data_generator["last_name"])).to_be_visible()
