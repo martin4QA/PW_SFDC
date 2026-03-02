@@ -7,7 +7,7 @@ from typing import Generator, Optional
 from urllib.parse import quote
 from playwright.sync_api import Page
 
-from auth import get_salesforce_auth
+from auth.salesforce import get_salesforce_auth
 
 ARTIFACTS_DIR = Path("artifacts")
 
@@ -23,16 +23,18 @@ load_dotenv()
 
 
 def _safe_name(name: str) -> str:
-    # Make a filename-safe test id
-
+    # Make a filename-safe test id by replacing problematic characters with underscores
     return re.sub(r"[^a-zA-Z0-9_.-]+", "_", f"{name}")
 
 
 def _env_flag(name: str, default: str = "0") -> bool:
+    # Interpret environment variable as a boolean flag (for PAUSE_ON_FAIL = 1/true/yes)
     return os.getenv(name, default).strip().lower() in {"1", "true", "yes", "y", "on"}
 
 
 def _delete_dir_if_empty(path):
+    # Attempt to delete the directory if it exists and is empty, ignoring errors if it's not empty or in use 
+    # (we just want to clean up empty dirs from successful tests, but don't want to risk losing data from failed tests)
     try:
         if path.exists() and path.is_dir() and not any(path.iterdir()):
             path.rmdir()
@@ -48,6 +50,11 @@ def _delete_dir_if_empty(path):
 
 @pytest.hookimpl(hookwrapper=True)
 def pytest_runtest_makereport(item, call):
+    """
+    Pytest hook to capture test outcomes and handle failures.
+    This runs after each test phase (setup, call, teardown) and allows us to inspect the result and perform actions on failure 
+    (capture screenshots, traces, html, and pause if env variable PAUSE_ON_FAIL = 1/true/yes).
+    """
     outcome = yield
     rep = outcome.get_result()
 
@@ -55,27 +62,28 @@ def pytest_runtest_makereport(item, call):
 
     if rep.when != "call" or not rep.failed:
         return
-
+    # If we get here, the test has failed during the "call" phase (the test body itself), so we want to capture artifacts and optionally pause.
     print("\n==== PYTEST FAILURE (longrepr) ====\n")
     print(rep.longrepr)
 
     crash = getattr(rep.longrepr, "reprcrash", None)
     if crash and getattr(crash, "message", None):
+        # If available, print the crash message for easier debugging (e.g. Playwright error details)
         print("\n==== PYTEST FAILURE (message) ====\n")
         print(crash.message)
 
     page = getattr(item, "pw_page", None)
     if not page:
+        # If we don't have a page attached, we can't capture artifacts or pause, but at least print a warning so it's clear why no artifacts are being saved.
         print("[warn] Test failed but no pw_page attached (did the test use sfdc_page?)")
         return
     
-    
-
-
+    # Generate file name and directory for artifacts based on the test id
     test_id = _safe_name(item.nodeid)
     test_dir = ARTIFACTS_DIR / test_id
     test_dir.mkdir(parents=True, exist_ok=True)
 
+    # Capture artifacts (screenshot, HTML) on failure for easier debugging, and optionally pause the browser if PAUSE_ON_FAIL is set.
     try:
         screenshot_path = test_dir / "screenshot.png"
         page.screenshot(path=str(screenshot_path), full_page=True)
@@ -181,6 +189,17 @@ def sfdc_context(browser, sfdc_storage_state):
 
 @pytest.fixture()
 def sfdc_page(sfdc_context, request) -> Page:
+    """
+    Provide a fresh Playwright Page per test using the authenticated
+    Salesforce browser context.
+
+    The page and its parent context are attached to the pytest node
+    to enable hook-based failure handling (e.g. pause, tracing, or
+    artifact capture) before teardown closes browser resources.
+
+    Teardown only closes the page; additional failure logic is handled
+    separately in pytest hooks.
+    """
     page = sfdc_context.new_page()
 
     # Attach for hook-time capture (before teardown closes anything)

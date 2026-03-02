@@ -1,4 +1,4 @@
-from playwright.sync_api import Page
+from playwright.sync_api import Page, expect
 
 
 class LeadsPage:
@@ -12,6 +12,7 @@ class LeadsPage:
         self.page.get_by_role("button", name="Global Actions").click()
 
     def click_new_lead(self):
+        expect(self.page.get_by_text("New Lead")).to_be_visible()
         self.page.get_by_text("New Lead").click()
         self.page.get_by_role("dialog", name="New Lead").wait_for()
 
@@ -29,8 +30,8 @@ class LeadsPage:
         # self.page.get_by_role("option", name="Developer Edition").click()
         # self.page.get_by_role("button", name="Global Actions").click()
         # self.page.get_by_role("menuitem", name="New Lead").click()
-        self.page.get_by_role("combobox", name="Salutation").click()
-        self.page.get_by_role("option", name=salutation).click()
+        self.page.get_by_role("button", name="Salutation").click()
+        self.page.get_by_role("option", name="Prof.").click()
         self.page.get_by_role("textbox", name="First Name").fill(first_name)
         self.page.get_by_role("textbox", name="Last Name *").fill(last_name)
         self.page.get_by_role("textbox", name="Email").fill(email)

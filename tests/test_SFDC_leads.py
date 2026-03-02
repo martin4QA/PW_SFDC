@@ -1,7 +1,7 @@
 import pytest
 from playwright.sync_api import expect
-from models.leads import LeadsPage
-from models.data import generate_test_data
+from ui_pages.leads import LeadsPage
+from test_data.lead_data import generate_test_data
 
 
 @pytest.fixture()
@@ -11,6 +11,15 @@ def test_data_generator():
 @pytest.fixture()
 def sfdc_leads_home(sfdc_page, sfdc_base_url):
     sfdc_page.goto(sfdc_base_url + "/lightning/o/Lead/home", wait_until="domcontentloaded")
+    # Ensure we have landed in the correct app before continuing
+    # sfdc_page.pause()
+
+    # sfdc_page.wait_for_timeout(300)
+    sfdc_page.wait_for_load_state("domcontentloaded")
+    sfdc_page.get_by_role("button", name="App Launcher").click()
+    expect(sfdc_page.get_by_role("option", name="Developer Edition")).to_be_visible()
+    sfdc_page.locator("//span/p[text()='Developer Edition']").click()
+    # sfdc_page.get_by_role("option", name="Developer Edition").click()
     return sfdc_page
 
 
@@ -56,4 +65,3 @@ def test_SFDC_add_full_lead(sfdc_leads_home, test_data_generator):
     expect(leads_page.page.get_by_role("link", name=str(test_data_generator["phone"]))).to_be_visible()
     expect(leads_page.page.locator("lightning-formatted-text").filter(has_text=test_data_generator["company"])).to_be_visible()
     expect(leads_page.page.locator("lightning-formatted-text").filter(has_text=test_data_generator["title"])).to_be_visible()
-   # expect(leads_page.page.locator("lightning-formatted-text").filter(has_text=test_data_generator["salutation"] + " " + test_data_generator["first_name"] + " " + test_data_generator["last_name"])).to_be_visible()

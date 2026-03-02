@@ -2,7 +2,9 @@ import os
 import time
 import jwt
 import requests
+from dotenv import load_dotenv
 
+load_dotenv()
 
 def get_salesforce_auth():
     """
@@ -20,7 +22,7 @@ def get_salesforce_auth():
     with open(os.environ["SF_PRIVATE_KEY_PATH"], "rb") as f:
         private_key = f.read()
 
-    # JWT claims required by Salesforce for the JWT Bearer flow
+    # JWT claims required by Salesforce for the JWT Bearer flowcha
     payload = {
         "iss": os.environ["SF_CLIENT_ID"],     # Connected App consumer key
         "sub": os.environ["SF_USERNAME"],      # Salesforce username to impersonate

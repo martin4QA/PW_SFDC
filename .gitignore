@@ -45,6 +45,7 @@ artifacts/
 # --------------------
 .env
 .env.*
+pytest.ini
 
 # --------------------
 # IDE / OS

@@ -11,3 +11,7 @@ python-dotenv
 
 # JWT authentication with RSA (Salesforce)
 PyJWT[crypto]
+
+# api testing
+faker
+jsonschema
