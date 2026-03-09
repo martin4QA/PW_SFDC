@@ -1,11 +1,11 @@
 import os
 import re
-from dotenv import load_dotenv
-import pytest
 from pathlib import Path
-from typing import Generator, Optional
 from urllib.parse import quote
-from playwright.sync_api import Page
+
+import pytest
+from dotenv import load_dotenv
+from playwright.sync_api import Page, expect
 
 from auth.salesforce import get_salesforce_auth
 
@@ -16,6 +16,11 @@ ARTIFACTS_DIR = Path("artifacts")
 load_dotenv()
 
 
+# Set global Playwright expect timeout to 10s (default is 5s)
+# to reduce flakiness in CI environments.
+@pytest.fixture(scope="session", autouse=True)
+def configure_expect():
+    expect.set_options(timeout=10000)
 
 # -------------------------------------------------------------------------------------------------
 # Funcitions
@@ -33,8 +38,10 @@ def _env_flag(name: str, default: str = "0") -> bool:
 
 
 def _delete_dir_if_empty(path):
-    # Attempt to delete the directory if it exists and is empty, ignoring errors if it's not empty or in use 
-    # (we just want to clean up empty dirs from successful tests, but don't want to risk losing data from failed tests)
+    # Attempt to delete the directory if it exists and is empty.
+    # Ignore errors if it's not empty or in use.
+    # We only clean up empty dirs from successful tests
+    # to avoid losing data from failed tests.
     try:
         if path.exists() and path.is_dir() and not any(path.iterdir()):
             path.rmdir()
@@ -52,8 +59,10 @@ def _delete_dir_if_empty(path):
 def pytest_runtest_makereport(item, call):
     """
     Pytest hook to capture test outcomes and handle failures.
-    This runs after each test phase (setup, call, teardown) and allows us to inspect the result and perform actions on failure 
-    (capture screenshots, traces, html, and pause if env variable PAUSE_ON_FAIL = 1/true/yes).
+    This runs after each test phase (setup, call, teardown) and allows us to inspect
+    the result and perform actions on failure
+    (capture screenshots, traces, html, and pause if env variable
+    PAUSE_ON_FAIL = 1/true/yes).
     """
     outcome = yield
     rep = outcome.get_result()
@@ -62,7 +71,8 @@ def pytest_runtest_makereport(item, call):
 
     if rep.when != "call" or not rep.failed:
         return
-    # If we get here, the test has failed during the "call" phase (the test body itself), so we want to capture artifacts and optionally pause.
+    # If we get here, the test has failed during the "call" phase (the test body itself),
+    # so we want to capture artifacts and optionally pause.
     print("\n==== PYTEST FAILURE (longrepr) ====\n")
     print(rep.longrepr)
 
@@ -74,16 +84,18 @@ def pytest_runtest_makereport(item, call):
 
     page = getattr(item, "pw_page", None)
     if not page:
-        # If we don't have a page attached, we can't capture artifacts or pause, but at least print a warning so it's clear why no artifacts are being saved.
+        # If we don't have a page attached, we can't capture artifacts or pause.
+        # Print a warning so it's clear why no artifacts are being saved.
         print("[warn] Test failed but no pw_page attached (did the test use sfdc_page?)")
         return
-    
+
     # Generate file name and directory for artifacts based on the test id
     test_id = _safe_name(item.nodeid)
     test_dir = ARTIFACTS_DIR / test_id
     test_dir.mkdir(parents=True, exist_ok=True)
 
-    # Capture artifacts (screenshot, HTML) on failure for easier debugging, and optionally pause the browser if PAUSE_ON_FAIL is set.
+    # Capture artifacts (screenshot, HTML) on failure for easier debugging,
+    # and optionally pause the browser if PAUSE_ON_FAIL is set.
     try:
         screenshot_path = test_dir / "screenshot.png"
         page.screenshot(path=str(screenshot_path), full_page=True)
@@ -105,6 +117,7 @@ def pytest_runtest_makereport(item, call):
 # -------------------------------------------------------------------------------------------------
 # Salesforce frontdoor helpers
 # -------------------------------------------------------------------------------------------------
+
 
 def build_frontdoor_url(auth: dict, target: str) -> str:
     """
@@ -135,6 +148,7 @@ def sfdc_login_with_frontdoor(page: Page, auth: dict, target: str) -> None:
 # -------------------------------------------------------------------------------------------------
 # Fixtures
 # -------------------------------------------------------------------------------------------------
+
 
 
 @pytest.fixture(scope="session")

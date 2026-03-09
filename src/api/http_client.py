@@ -1,6 +1,8 @@
 from dataclasses import dataclass
 from typing import Any, Dict, Optional
+
 import requests
+
 
 @dataclass
 class ApiResponse:
@@ -8,6 +10,7 @@ class ApiResponse:
     headers: Dict[str, str]
     json: Optional[Dict[str, Any]]
     text: str
+
 
 class ApiClient:
     def __init__(self, base_url: str, token: str, session: requests.Session | None = None):

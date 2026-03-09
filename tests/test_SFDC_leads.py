@@ -1,28 +1,41 @@
 import pytest
-from playwright.sync_api import expect
-from ui_pages.leads import LeadsPage
+from playwright.sync_api import Page, expect
+
 from test_data.lead_data import generate_test_data
+from ui_pages.common import CommonPage
+from ui_pages.leads import LeadsPage
 
 
 @pytest.fixture()
 def test_data_generator():
     return generate_test_data()
 
+
 @pytest.fixture()
-def sfdc_leads_home(sfdc_page, sfdc_base_url):
+def sfdc_leads_home(sfdc_page: Page, sfdc_base_url: str):
     sfdc_page.goto(sfdc_base_url + "/lightning/o/Lead/home", wait_until="domcontentloaded")
+    common_page = CommonPage(sfdc_page)
+    common_page.open_app_from_launcher("Developer Edition")
     # Ensure we have landed in the correct app before continuing
     # sfdc_page.pause()
 
     # sfdc_page.wait_for_timeout(300)
-    sfdc_page.wait_for_load_state("domcontentloaded")
-    sfdc_page.get_by_role("button", name="App Launcher").click()
-    expect(sfdc_page.get_by_role("option", name="Developer Edition")).to_be_visible()
-    sfdc_page.locator("//span/p[text()='Developer Edition']").click()
+    # sfdc_page.wait_for_load_state("domcontentloaded")
+    # sfdc_page.get_by_role("button", name="App Launcher").click()
+    # expect(sfdc_page.locator("//span/p[text()='Developer Edition']")).to_be_visible()
+    # sfdc_page.locator("//span/p[text()='Developer Edition']").click()
     # sfdc_page.get_by_role("option", name="Developer Edition").click()
+
+
+    # search = sfdc_page.get_by_role("searchbox")
+    # expect(search).to_be_visible()
+    # search.fill("Developer Edition")
+
+    # tile = sfdc_page.get_by_role("option", name="Developer Edition")
+    # expect(tile).to_be_visible()
+    # tile.click()
+
     return sfdc_page
-
-
 
 
 # def test_SFDC_login(sfdc_page, sfdc_base_url):
@@ -54,14 +67,39 @@ def sfdc_leads_home(sfdc_page, sfdc_base_url):
 #     sfdc_leads_home.wait_for_url("**/lightning/r/Lead/**", timeout=60000)
 #     sfdc_leads_home.on(inputFileHandler =lambda file: file.set_files("path/to/local/file.txt"))
 
-def test_SFDC_add_full_lead(sfdc_leads_home, test_data_generator):
 
-    leads_page = LeadsPage(sfdc_leads_home) 
-    leads_page.click_global_actions()
-    leads_page.click_new_lead()
-    leads_page.fill_lead_form_full(test_data_generator["salutation"], test_data_generator["first_name"], test_data_generator["last_name"], test_data_generator["company"], test_data_generator["title"], test_data_generator["email"], test_data_generator["phone"])
+def test_SFDC_add_full_lead(sfdc_leads_home: Page, test_data_generator: dict):
+
+ 
+    leads_page = LeadsPage(sfdc_leads_home)
+    common_page = CommonPage(sfdc_leads_home)
+ #   common_page.open_global_actions_menu()
+    # sfdc_leads_home.pause()
+    common_page.select_global_action("New Lead")
+    leads_page.fill_lead_form_full(
+        test_data_generator["salutation"],
+        test_data_generator["first_name"],
+        test_data_generator["last_name"],
+        test_data_generator["company"],
+        test_data_generator["title"],
+        test_data_generator["email"],
+        test_data_generator["phone"],
+    )
+    
+    # sfdc_leads_home.pause()
+    leads_page.assert_success_message()
     expect(leads_page.page.locator("lightning-formatted-name")).to_be_visible()
     expect(leads_page.page.get_by_role("link", name=test_data_generator["email"])).to_be_visible()
-    expect(leads_page.page.get_by_role("link", name=str(test_data_generator["phone"]))).to_be_visible()
-    expect(leads_page.page.locator("lightning-formatted-text").filter(has_text=test_data_generator["company"])).to_be_visible()
-    expect(leads_page.page.locator("lightning-formatted-text").filter(has_text=test_data_generator["title"])).to_be_visible()
+    expect(
+        leads_page.page.get_by_role("link", name=str(test_data_generator["phone"]))
+    ).to_be_visible()
+    expect(
+        leads_page.page.locator("lightning-formatted-text").filter(
+            has_text=test_data_generator["company"]
+        )
+    ).to_be_visible()
+    expect(
+        leads_page.page.locator("lightning-formatted-text").filter(
+            has_text=test_data_generator["title"]
+        )
+    ).to_be_visible()

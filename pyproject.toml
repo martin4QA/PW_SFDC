@@ -1,0 +1,47 @@
+[project]
+name = "pw-sfdc-qa-platform"
+version = "0.1.0"
+description = "Salesforce UI and API automation framework using Playwright and pytest"
+requires-python = ">=3.11"
+
+dependencies = [
+    "pytest>=8.0",
+    "playwright>=1.42",
+    "requests>=2.31",
+    "python-dotenv>=1.0",
+    "PyJWT>=2.8",
+    "jsonschema>=4.21",
+    "ruff>=0.3",
+]
+
+# -----------------------
+# Ruff (Linter + Import Sort)
+# -----------------------
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = [
+    "E",   # pycodestyle
+    "F",   # pyflakes
+    "I",   # import sorting
+    "B",   # bugbear (excellent)
+]
+ignore = []
+
+[tool.ruff.format]
+quote-style = "double"
+
+# -----------------------
+# Mypy (Optional but Strong Signal)
+# -----------------------
+
+[tool.mypy]
+python_version = "3.11"
+ignore_missing_imports = true
+strict_optional = true
+warn_unused_ignores = true
+warn_return_any = true
+disallow_untyped_defs = false

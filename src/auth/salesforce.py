@@ -1,10 +1,12 @@
 import os
 import time
+
 import jwt
 import requests
 from dotenv import load_dotenv
 
 load_dotenv()
+
 
 def get_salesforce_auth():
     """
@@ -24,10 +26,10 @@ def get_salesforce_auth():
 
     # JWT claims required by Salesforce for the JWT Bearer flowcha
     payload = {
-        "iss": os.environ["SF_CLIENT_ID"],     # Connected App consumer key
-        "sub": os.environ["SF_USERNAME"],      # Salesforce username to impersonate
-        "aud": login_url,                      # Login endpoint (prod or sandbox)
-        "exp": int(time.time()) + 180,         # Short-lived token (3 minutes)
+        "iss": os.environ["SF_CLIENT_ID"],  # Connected App consumer key
+        "sub": os.environ["SF_USERNAME"],  # Salesforce username to impersonate
+        "aud": login_url,  # Login endpoint (prod or sandbox)
+        "exp": int(time.time()) + 180,  # Short-lived token (3 minutes)
     }
 
     # Sign the JWT using the private key registered with the connected app

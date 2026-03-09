@@ -1,0 +1,12 @@
+Metadata-Version: 2.4
+Name: pw-sfdc-qa-platform
+Version: 0.1.0
+Summary: Salesforce UI and API automation framework using Playwright and pytest
+Requires-Python: >=3.11
+Requires-Dist: pytest>=8.0
+Requires-Dist: playwright>=1.42
+Requires-Dist: requests>=2.31
+Requires-Dist: python-dotenv>=1.0
+Requires-Dist: PyJWT>=2.8
+Requires-Dist: jsonschema>=4.21
+Requires-Dist: ruff>=0.3

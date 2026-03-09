@@ -20,6 +20,7 @@ def generate_test_data(seed: int | None = None) -> dict:
         "title": f"TestTitle_{seed}",
     }
 
+
 def lead_payload_from_test_data(data: dict) -> dict:
     """
     Convert internal test data format to Salesforce Lead REST payload.

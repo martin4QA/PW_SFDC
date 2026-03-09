@@ -1,5 +1,6 @@
 from sfdc.lead_api import create_lead, delete_lead
 
+
 def test_delete_lead_via_api(sfdc_api_client, sfdc_api_version):
     # first create a lead to delete
     payload = {

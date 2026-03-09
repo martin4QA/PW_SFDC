@@ -15,3 +15,8 @@ PyJWT[crypto]
 # api testing
 faker
 jsonschema
+
+# Linting and formatting
+ruff
+black
+MyPy
