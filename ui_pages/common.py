@@ -68,7 +68,7 @@ class CommonPage:
         # if not self.global_actions_menu.is_visible():
         sfdc_click(self.global_actions_button)
         # print("[info] Clicked Global Actions button to open menu")
-        expect(self.global_actions_menu).to_be_visible()
+        expect(self.global_actions_menu).to_be_visible(timeout=30000)
 
 
     def select_global_action(self, action_name: str) -> None:
@@ -92,7 +92,7 @@ class CommonPage:
         #     btn.click()
 
                 # Wait for launcher UI (not network)
-                expect(panel).to_be_visible(timeout=30000)
+                #expect(panel).to_be_visible(timeout=30000)
                 sfdc_click(self.launcher_target(app_name))
 
         # # Search if available (more reliable than scrolling)

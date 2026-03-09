@@ -27,7 +27,7 @@ jobs:
 
       - name: Run tests
         run: |
-          pytest -q -v -maxfail=1 --disable-warnings
+          pytest -q -v --disable-warnings
 
       - name: Upload test artifacts (failures only)
         if: failure()
